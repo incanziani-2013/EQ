@@ -1,0 +1,32 @@
+name: Build AQEQ VST3
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Compilar Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Juntar el VST3
+        shell: pwsh
+        run: |
+          $v = Get-ChildItem -Path build -Recurse -Directory -Filter "AQEQ.vst3" | Select-Object -First 1
+          if (-not $v) { throw "No se encontro AQEQ.vst3" }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $v.FullName -Destination dist -Recurse
+
+      - name: Subir el VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: AQEQ-VST3
+          path: dist
